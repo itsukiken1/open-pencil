@@ -282,6 +282,12 @@ function createSceneNode(
     penSources.set(pen.id, pen)
   }
 
+  // Track every pen.id → graph-node.id mapping so that prototyping
+  // connections (which reference pen-node ids) can be resolved after import.
+  if (ctx.penToGraphIds && pen.id) {
+    ctx.penToGraphIds.set(pen.id, node.id)
+  }
+
   if (pen.children) {
     for (const child of pen.children) {
       createSceneNode(child, node.id, graph, ctx, componentIds, penSources)
@@ -510,7 +516,67 @@ export function parsePenFile(json: string): SceneGraph {
     graph.addPage('Page 1')
   }
 
+  importPrototyping(doc, graph, ctx)
+
   return graph
+}
+
+/**
+ * Import `doc.prototyping` array into `graph.connections`, remapping
+ * pen-file node ids to the ids SceneGraph generated on import.
+ */
+function importPrototyping(
+  doc: PenDocument,
+  graph: SceneGraph,
+  ctx: VarContext
+): void {
+  const penConnections = doc.prototyping ?? []
+  if (penConnections.length === 0) return
+  const map = ctx.penToGraphIds
+  if (!map) return
+
+  const validKinds = new Set([
+    'NONE',
+    'INTERNAL_NODE',
+    'URL',
+    'BACK',
+    'CLOSE',
+    'SET_VARIABLE'
+  ])
+  const validInteractions = new Set([
+    'ON_CLICK',
+    'AFTER_TIMEOUT',
+    'MOUSE_IN',
+    'MOUSE_OUT',
+    'ON_HOVER',
+    'MOUSE_DOWN',
+    'MOUSE_UP',
+    'ON_PRESS'
+  ])
+
+  for (const pc of penConnections) {
+    const source = map.get(pc.sourceNodeId)
+    if (!source) continue  // source node wasn't imported; skip
+    const target = pc.targetNodeId ? (map.get(pc.targetNodeId) ?? '') : ''
+    graph.addConnection({
+      id: pc.id,
+      sourceNodeId: source,
+      targetNodeId: target,
+      kind: (validKinds.has(pc.kind) ? pc.kind : 'INTERNAL_NODE') as import(
+        '../../../scene-graph/connection'
+      ).ConnectionKind,
+      interaction: (validInteractions.has(pc.interaction)
+        ? pc.interaction
+        : 'ON_CLICK') as import(
+        '../../../scene-graph/connection'
+      ).InteractionTrigger,
+      navigation: pc.navigation as
+        | import('../../../scene-graph/connection').NavigationKind
+        | undefined,
+      url: pc.url,
+      metadata: pc.metadata
+    })
+  }
 }
 
 export async function readPenFile(file: File): Promise<SceneGraph> {

@@ -537,6 +537,8 @@ export class SceneGraph {
   readonly emitter: Emitter<SceneGraphEvents> = createNanoEvents()
   private absPosCache = new Map<string, Vector>()
   instanceIndex = new Map<string, Set<string>>()
+  // Prototyping connections — see ./connection.ts. Keyed by connection.id.
+  connections = new Map<string, import('./connection').Connection>()
 
   constructor() {
     const root = createDefaultNode('FRAME', {
@@ -1009,6 +1011,60 @@ export class SceneGraph {
 
   getInstances(componentId: string): SceneNode[] {
     return getInstancesFn(this, componentId)
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Prototyping connections
+  // ──────────────────────────────────────────────────────────────
+
+  addConnection(conn: import('./connection').Connection): void {
+    this.connections.set(conn.id, conn)
+  }
+
+  updateConnection(
+    id: string,
+    changes: Partial<import('./connection').Connection>
+  ): void {
+    const existing = this.connections.get(id)
+    if (!existing) return
+    this.connections.set(id, { ...existing, ...changes, id })
+  }
+
+  deleteConnection(id: string): void {
+    this.connections.delete(id)
+  }
+
+  getConnection(id: string): import('./connection').Connection | undefined {
+    return this.connections.get(id)
+  }
+
+  /** All outbound connections from a given node (it is the source). */
+  getConnectionsFromNode(nodeId: string): import('./connection').Connection[] {
+    const out: import('./connection').Connection[] = []
+    for (const conn of this.connections.values()) {
+      if (conn.sourceNodeId === nodeId) out.push(conn)
+    }
+    return out
+  }
+
+  /** All inbound connections to a given node (it is the target). */
+  getConnectionsToNode(nodeId: string): import('./connection').Connection[] {
+    const out: import('./connection').Connection[] = []
+    for (const conn of this.connections.values()) {
+      if (conn.targetNodeId === nodeId) out.push(conn)
+    }
+    return out
+  }
+
+  /** Remove any connection touching the given node — call this on node deletion. */
+  removeConnectionsForNode(nodeId: string): void {
+    const toDelete: string[] = []
+    for (const conn of this.connections.values()) {
+      if (conn.sourceNodeId === nodeId || conn.targetNodeId === nodeId) {
+        toDelete.push(conn.id)
+      }
+    }
+    for (const id of toDelete) this.connections.delete(id)
   }
 
   flattenTree(parentId?: string, depth = 0): Array<{ node: SceneNode; depth: number }> {
