@@ -36,6 +36,7 @@ import {
 import { computeVisualBounds } from '../geometry'
 import { RenderProfiler } from '../profiler'
 import { drawAiOverlays as drawAiOverlaysFn } from './ai-overlays'
+import { drawConnections as drawConnectionsFn } from './connections'
 import {
   getCachedDropShadow as getCachedDropShadowFn,
   getCachedBlur as getCachedBlurFn,
@@ -207,6 +208,9 @@ export class SkiaRenderer {
   auxStroke: Paint
   opacityPaint: Paint
   effectLayerPaint: Paint
+  // Prototyping-arrow paints; lazily initialised by canvas/connections.ts
+  connectionPaint: Paint | null = null
+  connectionHandlePaint: Paint | null = null
   imageFilterCache = new Map<string, ImageFilter | null>()
   maskFilterCache = new Map<number, MaskFilter | null>()
   _tmpColor = new Float32Array(4)
@@ -847,6 +851,12 @@ export class SkiaRenderer {
       p.endPhase('render:recordPicture')
     }
     p.endPhase('render:scene')
+
+    // Prototyping connections — drawn in world space over the scene.
+    // World transform (dpr+pan+zoom) is still on the stack here.
+    p.beginPhase('render:connections')
+    drawConnectionsFn(this, canvas, graph)
+    p.endPhase('render:connections')
 
     canvas.restore()
 

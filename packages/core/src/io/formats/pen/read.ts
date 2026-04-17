@@ -25,6 +25,11 @@ import {
 } from './convert'
 
 import type { LayoutMode, LayoutSizing, SceneNode, VectorNetwork } from '../../../scene-graph'
+import type {
+  ConnectionKind,
+  InteractionTrigger,
+  NavigationKind
+} from '../../../scene-graph/connection'
 
 function scaleVectorNetwork(vn: VectorNetwork, targetW: number, targetH: number): void {
   if (vn.vertices.length === 0) return
@@ -562,17 +567,11 @@ function importPrototyping(
       id: pc.id,
       sourceNodeId: source,
       targetNodeId: target,
-      kind: (validKinds.has(pc.kind) ? pc.kind : 'INTERNAL_NODE') as import(
-        '../../../scene-graph/connection'
-      ).ConnectionKind,
+      kind: (validKinds.has(pc.kind) ? pc.kind : 'INTERNAL_NODE') as ConnectionKind,
       interaction: (validInteractions.has(pc.interaction)
         ? pc.interaction
-        : 'ON_CLICK') as import(
-        '../../../scene-graph/connection'
-      ).InteractionTrigger,
-      navigation: pc.navigation as
-        | import('../../../scene-graph/connection').NavigationKind
-        | undefined,
+        : 'ON_CLICK') as InteractionTrigger,
+      navigation: pc.navigation as NavigationKind | undefined,
       url: pc.url,
       metadata: pc.metadata
     })

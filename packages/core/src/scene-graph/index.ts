@@ -2,6 +2,7 @@
 import { createNanoEvents } from 'nanoevents'
 
 import { BLACK, DEFAULT_FONT_FAMILY, DEFAULT_STROKE_MITER_LIMIT } from '../constants'
+import type { Connection } from './connection'
 import {
   hitTest as hitTestFn,
   hitTestDeep as hitTestDeepFn,
@@ -538,7 +539,7 @@ export class SceneGraph {
   private absPosCache = new Map<string, Vector>()
   instanceIndex = new Map<string, Set<string>>()
   // Prototyping connections — see ./connection.ts. Keyed by connection.id.
-  connections = new Map<string, import('./connection').Connection>()
+  connections = new Map<string, Connection>()
 
   constructor() {
     const root = createDefaultNode('FRAME', {
@@ -1017,13 +1018,13 @@ export class SceneGraph {
   // Prototyping connections
   // ──────────────────────────────────────────────────────────────
 
-  addConnection(conn: import('./connection').Connection): void {
+  addConnection(conn: Connection): void {
     this.connections.set(conn.id, conn)
   }
 
   updateConnection(
     id: string,
-    changes: Partial<import('./connection').Connection>
+    changes: Partial<Connection>
   ): void {
     const existing = this.connections.get(id)
     if (!existing) return
@@ -1034,13 +1035,13 @@ export class SceneGraph {
     this.connections.delete(id)
   }
 
-  getConnection(id: string): import('./connection').Connection | undefined {
+  getConnection(id: string): Connection | undefined {
     return this.connections.get(id)
   }
 
   /** All outbound connections from a given node (it is the source). */
-  getConnectionsFromNode(nodeId: string): import('./connection').Connection[] {
-    const out: import('./connection').Connection[] = []
+  getConnectionsFromNode(nodeId: string): Connection[] {
+    const out: Connection[] = []
     for (const conn of this.connections.values()) {
       if (conn.sourceNodeId === nodeId) out.push(conn)
     }
@@ -1048,8 +1049,8 @@ export class SceneGraph {
   }
 
   /** All inbound connections to a given node (it is the target). */
-  getConnectionsToNode(nodeId: string): import('./connection').Connection[] {
-    const out: import('./connection').Connection[] = []
+  getConnectionsToNode(nodeId: string): Connection[] {
+    const out: Connection[] = []
     for (const conn of this.connections.values()) {
       if (conn.targetNodeId === nodeId) out.push(conn)
     }
