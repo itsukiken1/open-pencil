@@ -57,7 +57,8 @@ const toolLabels = computed<Record<Tool, string>>(() => ({
   STAR: toolTexts.value.star,
   PEN: toolTexts.value.pen,
   TEXT: toolTexts.value.text,
-  HAND: toolTexts.value.hand
+  HAND: toolTexts.value.hand,
+  PROTOTYPE: 'Prototype'
 }))
 
 const toolShortcuts: Record<Tool, string> = {
@@ -71,7 +72,8 @@ const toolShortcuts: Record<Tool, string> = {
   STAR: '',
   PEN: 'P',
   TEXT: 'T',
-  HAND: 'H'
+  HAND: 'H',
+  PROTOTYPE: 'Y'
 }
 
 interface ActionItem {

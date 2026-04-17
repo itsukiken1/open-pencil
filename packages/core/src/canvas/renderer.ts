@@ -194,6 +194,12 @@ export interface RenderOverlays {
     y: number
     selection?: string[]
   }>
+  /** Live-preview for the prototyping drag; rendered as a ghost bezier. */
+  pendingConnection?: {
+    sourceNodeId: string
+    cursorX: number
+    cursorY: number
+  } | null
 }
 
 export class SkiaRenderer {
@@ -781,7 +787,8 @@ export class SkiaRenderer {
             } as RenderOverlays['penState'])
           : null,
         nodeEditState: extendedState.nodeEditState ?? null,
-        remoteCursors: state.remoteCursors
+        remoteCursors: state.remoteCursors,
+        pendingConnection: state.pendingConnection ?? null
       },
       state.sceneVersion
     )
@@ -855,7 +862,7 @@ export class SkiaRenderer {
     // Prototyping connections — drawn in world space over the scene.
     // World transform (dpr+pan+zoom) is still on the stack here.
     p.beginPhase('render:connections')
-    drawConnectionsFn(this, canvas, graph)
+    drawConnectionsFn(this, canvas, graph, overlays.pendingConnection ?? null)
     p.endPhase('render:connections')
 
     canvas.restore()

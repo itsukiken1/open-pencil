@@ -18,6 +18,8 @@ export type Tool =
   | 'TEXT'
   | 'PEN'
   | 'HAND'
+  /** Prototyping: drag from source element → drop on target frame to create a Connection. */
+  | 'PROTOTYPE'
 
 export interface EditorToolDef {
   key: Tool
@@ -37,7 +39,8 @@ export const EDITOR_TOOLS: EditorToolDef[] = [
   },
   { key: 'PEN', label: 'Pen', shortcut: 'P' },
   { key: 'TEXT', label: 'Text', shortcut: 'T' },
-  { key: 'HAND', label: 'Hand', shortcut: 'H' }
+  { key: 'HAND', label: 'Hand', shortcut: 'H' },
+  { key: 'PROTOTYPE', label: 'Prototype', shortcut: 'Y' }
 ]
 
 export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
@@ -49,7 +52,8 @@ export const TOOL_SHORTCUTS: Partial<Record<string, Tool>> = {
   KeyL: 'LINE',
   KeyT: 'TEXT',
   KeyP: 'PEN',
-  KeyH: 'HAND'
+  KeyH: 'HAND',
+  KeyY: 'PROTOTYPE'
 }
 
 export interface EditorState {
@@ -96,6 +100,17 @@ export interface EditorState {
   sceneVersion: number
   loading: boolean
   enteredContainerId: string | null
+  /**
+   * In-progress prototyping drag. Set on PROTOTYPE tool mouseDown over a
+   * node, updated on mouseMove, cleared on mouseUp. When non-null the
+   * canvas renderer draws a live preview bezier from the source anchor to
+   * (cursorX, cursorY).
+   */
+  pendingConnection: {
+    sourceNodeId: string
+    cursorX: number
+    cursorY: number
+  } | null
 }
 
 export interface EditorOptions {

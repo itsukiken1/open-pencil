@@ -48,7 +48,8 @@ export function createDefaultEditorState(pageId: string): EditorState {
     renderVersion: 0,
     sceneVersion: 0,
     loading: false,
-    enteredContainerId: null
+    enteredContainerId: null,
+    pendingConnection: null
   }
 }
 

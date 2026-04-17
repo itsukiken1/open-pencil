@@ -68,16 +68,53 @@ function rectOf(graph: SceneGraph, nodeId: string):
 export function drawConnections(
   r: SkiaRenderer,
   canvas: Canvas,
-  graph: SceneGraph
+  graph: SceneGraph,
+  pending: { sourceNodeId: string; cursorX: number; cursorY: number } | null = null
 ): void {
-  if (graph.connections.size === 0) return
+  if (graph.connections.size === 0 && !pending) return
 
-  const strokePaint = r.connectionPaint ?? ensurePaints(r).stroke
-  const handlePaint = r.connectionHandlePaint ?? ensurePaints(r).handle
+  const paints = ensurePaints(r)
 
   for (const conn of graph.connections.values()) {
-    drawOneConnection(r, canvas, graph, conn, strokePaint, handlePaint)
+    drawOneConnection(r, canvas, graph, conn, paints.stroke, paints.handle)
   }
+
+  if (pending) drawPendingConnection(r, canvas, graph, pending, paints.stroke, paints.handle)
+}
+
+function drawPendingConnection(
+  r: SkiaRenderer,
+  canvas: Canvas,
+  graph: SceneGraph,
+  pending: { sourceNodeId: string; cursorX: number; cursorY: number },
+  stroke: Paint,
+  handle: Paint
+): void {
+  const source = rectOf(graph, pending.sourceNodeId)
+  if (!source) return
+  const cursor = { x: pending.cursorX, y: pending.cursorY, w: 0, h: 0 }
+  const a = pickAnchor(source, cursor)
+
+  const b: Anchor = {
+    x: pending.cursorX,
+    y: pending.cursorY,
+    dx: 0,
+    dy: 0
+  }
+
+  const dist = Math.hypot(b.x - a.x, b.y - a.y)
+  const bow = Math.max(40, dist * 0.35)
+  const cp1x = a.x + a.dx * bow
+  const cp1y = a.y + a.dy * bow
+
+  const path = new r.ck.Path()
+  path.moveTo(a.x, a.y)
+  path.cubicTo(cp1x, cp1y, b.x, b.y, b.x, b.y)
+  canvas.drawPath(path, stroke)
+  path.delete()
+
+  canvas.drawCircle(a.x, a.y, HANDLE_RADIUS, handle)
+  canvas.drawCircle(b.x, b.y, HANDLE_RADIUS, handle)
 }
 
 function drawOneConnection(

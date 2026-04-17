@@ -2,6 +2,7 @@ import IconCircle from '~icons/lucide/circle'
 import IconFrame from '~icons/lucide/frame'
 import IconHand from '~icons/lucide/hand'
 import IconLayoutGrid from '~icons/lucide/layout-grid'
+import IconLink from '~icons/lucide/link-2'
 import IconMinus from '~icons/lucide/minus'
 import IconMousePointer from '~icons/lucide/mouse-pointer'
 import IconPenTool from '~icons/lucide/pen-tool'
@@ -24,5 +25,6 @@ export const toolIcons: Record<Tool, Component> = {
   STAR: IconStar,
   PEN: IconPenTool,
   TEXT: IconType,
-  HAND: IconHand
+  HAND: IconHand,
+  PROTOTYPE: IconLink
 }

@@ -105,6 +105,13 @@ export interface DragBendHandle {
   targetTangentField: 'tangentStart' | 'tangentEnd' | null
 }
 
+export interface DragPrototype {
+  type: 'prototype-drag'
+  sourceNodeId: string
+  startX: number
+  startY: number
+}
+
 export type DragState =
   | DragDraw
   | DragMove
@@ -117,6 +124,7 @@ export type DragState =
   | DragEditNode
   | DragEditHandle
   | DragBendHandle
+  | DragPrototype
 
 export const TOOL_TO_NODE: Partial<Record<Tool, NodeType>> = {
   FRAME: 'FRAME',

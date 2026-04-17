@@ -444,6 +444,24 @@ export function useCanvasInput(
       return
     }
 
+    if (tool === 'PROTOTYPE') {
+      const hit = editor.graph.hitTestDeep(cx, cy)
+      if (!hit) return
+      editor.state.pendingConnection = {
+        sourceNodeId: hit.id,
+        cursorX: cx,
+        cursorY: cy
+      }
+      drag.value = {
+        type: 'prototype-drag',
+        sourceNodeId: hit.id,
+        startX: cx,
+        startY: cy
+      } as DragState
+      editor.requestRender()
+      return
+    }
+
     const nodeType = TOOL_TO_NODE[tool]
     if (!nodeType) return
 
@@ -459,6 +477,16 @@ export function useCanvasInput(
     if (onCursorMove) {
       const { cx, cy } = getCoords(e)
       onCursorMove(cx, cy)
+    }
+
+    if (drag.value?.type === 'prototype-drag') {
+      const { cx, cy } = getCoords(e)
+      if (editor.state.pendingConnection) {
+        editor.state.pendingConnection.cursorX = cx
+        editor.state.pendingConnection.cursorY = cy
+      }
+      editor.requestRepaint()
+      return
     }
 
     if (editor.state.activeTool === 'PEN' && editor.state.penState && !drag.value) {
@@ -669,6 +697,27 @@ export function useCanvasInput(
     const nodeEditEditor = editor as Editor & NodeEditMethods
     if (!drag.value) return
     const d = drag.value
+
+    if (d.type === 'prototype-drag') {
+      const pending = editor.state.pendingConnection
+      if (pending) {
+        const target = editor.graph.hitTestDeep(pending.cursorX, pending.cursorY)
+        if (target && target.id !== d.sourceNodeId) {
+          editor.graph.addConnection({
+            id: `conn_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            sourceNodeId: d.sourceNodeId,
+            targetNodeId: target.id,
+            kind: 'INTERNAL_NODE',
+            interaction: 'ON_CLICK',
+            navigation: 'NAVIGATE'
+          })
+        }
+      }
+      editor.state.pendingConnection = null
+      drag.value = null
+      editor.requestRender()
+      return
+    }
 
     if (d.type === 'bend-handle') {
       // If no drag happened (lockedMode never set), zero all handles on this vertex
