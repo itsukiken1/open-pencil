@@ -77,8 +77,16 @@ interface PenEffect {
 
 interface PenFillObject {
   type: string
-  color: string
+  color?: string
   enabled?: boolean
+  opacity?: number
+  /** Image fill (`type: 'image'`): url relative to the .pen file. */
+  url?: string
+  mode?: 'stretch' | 'fill' | 'fit'
+  /** Gradient fill (`type: 'gradient'`). */
+  gradientType?: 'linear' | 'radial' | 'angular'
+  colors?: Array<{ color: string; position: number }>
+  rotation?: number
 }
 
 type PenFill = string | PenFillObject | PenFillObject[]
@@ -298,20 +306,68 @@ export function buildVarContext(
 }
 
 function parseFillColor(fill: string | PenFillObject, ctx: VarContext): Color {
-  const raw = typeof fill === 'string' ? fill : fill.color
+  const raw = typeof fill === 'string' ? fill : (fill.color ?? '#00000000')
   return isVarRef(raw) ? ctx.resolveColor(raw) : parseColor(raw)
 }
+
+const IMAGE_FILL_PLACEHOLDER_COLOR: Color = { r: 0.9, g: 0.9, b: 0.92, a: 1 }
 
 export function convertFill(fill: PenFill | undefined, ctx: VarContext, node?: SceneNode): Fill[] {
   if (fill === undefined) return []
   const fills = Array.isArray(fill) ? fill : [fill]
-  return fills.map((item, index) => {
+  const out: Fill[] = []
+  for (let index = 0; index < fills.length; index++) {
+    const item = fills[index]
     const visible = typeof item === 'string' ? true : item.enabled !== false
+
+    // Image fill — render as IMAGE with placeholder color so the frame has
+    // a visible silhouette. Actual bytes/hash resolution is a later phase;
+    // for now the URL is stashed on imageHash so downstream tools can find it.
+    if (typeof item === 'object' && item.type === 'image') {
+      const opacity = item.opacity ?? 1
+      out.push({
+        type: 'IMAGE',
+        visible,
+        opacity,
+        color: IMAGE_FILL_PLACEHOLDER_COLOR,
+        imageHash: item.url,
+        imageScaleMode:
+          item.mode === 'fit' ? 'FIT' : item.mode === 'stretch' ? 'FILL' : 'FILL'
+      } as Fill)
+      continue
+    }
+
+    // Gradient fill — basic linear mapping; radial/angular also supported by
+    // the scene-graph FillType but we emit GRADIENT_LINEAR as a sane default
+    // when kola.pen doesn't specify the type explicitly.
+    if (typeof item === 'object' && item.type === 'gradient') {
+      const gradType =
+        item.gradientType === 'radial'
+          ? ('GRADIENT_RADIAL' as const)
+          : item.gradientType === 'angular'
+            ? ('GRADIENT_ANGULAR' as const)
+            : ('GRADIENT_LINEAR' as const)
+      const stops = (item.colors ?? []).map((c) => ({
+        color: parseColor(c.color),
+        position: c.position ?? 0
+      }))
+      out.push({
+        type: gradType,
+        visible,
+        opacity: item.opacity ?? 1,
+        color: stops[0]?.color ?? { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+        gradientStops: stops.length > 0 ? stops : undefined
+      } as Fill)
+      continue
+    }
+
     const color = parseFillColor(item, ctx)
-    const result: Fill = { type: 'SOLID', visible, opacity: color.a, color }
-    if (node) bindIfVar(node, `fills[${index}]`, typeof item === 'string' ? item : item.color, ctx)
-    return result
-  })
+    out.push({ type: 'SOLID', visible, opacity: color.a, color })
+    if (node) {
+      bindIfVar(node, `fills[${index}]`, typeof item === 'string' ? item : item.color, ctx)
+    }
+  }
+  return out
 }
 
 function strokeWeight(stroke: PenStroke): number {

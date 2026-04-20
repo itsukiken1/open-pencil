@@ -1,6 +1,7 @@
 import { shallowRef, computed, triggerRef } from 'vue'
 
 import { BUILTIN_IO_FORMATS, IORegistry } from '@open-pencil/core'
+import { loadPenImages } from '@open-pencil/core/io/formats/pen'
 
 import { createEditorStore, setActiveEditorStore } from './editor'
 
@@ -106,6 +107,7 @@ export async function openFileInNewTab(
     current.store.state.selectedIds = new Set()
     const pageId = current.store.graph.getPages()[0]?.id ?? current.store.graph.rootId
     await current.store.switchPage(pageId)
+    void loadKolaImagesInBackground(current.store, imported)
   } else {
     const store = createEditorStore(imported)
     createTab(store)
@@ -115,6 +117,30 @@ export async function openFileInNewTab(
     store.state.selectedIds = new Set()
     const pageId = store.graph.getPages()[0]?.id ?? store.graph.rootId
     await store.switchPage(pageId)
+    void loadKolaImagesInBackground(store, imported)
+  }
+}
+
+/**
+ * Kola-style .pen files reference images by relative URL like
+ * `images/image-import-12.png`. We serve that directory from the dev server
+ * at `/kola-images/*` (via the public/kola-images symlink). This helper
+ * fetches every referenced image asynchronously after open.
+ */
+async function loadKolaImagesInBackground(store: EditorStore, graph: SceneGraph): Promise<void> {
+  try {
+    const { loaded, failed } = await loadPenImages(graph, (url) => {
+      if (url.startsWith('images/')) return `/kola-images/${url.slice('images/'.length)}`
+      return url
+    })
+    if (loaded > 0) {
+      // Images are now in graph.images; bump sceneVersion so renderer redraws.
+      store.state.sceneVersion++
+      store.requestRender()
+      console.log(`[kola] loaded ${loaded} images (${failed} failed)`)
+    }
+  } catch (e) {
+    console.warn('[kola] image load failed', e)
   }
 }
 

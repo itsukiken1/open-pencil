@@ -1,4 +1,5 @@
 export { parsePenFile, readPenFile } from './read'
+export { loadPenImages } from './images'
 export {
   writePenConnections,
   writePenConnectionsRaw,
