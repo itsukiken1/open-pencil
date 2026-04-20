@@ -12,7 +12,8 @@ import { getAbsolutePositionFull } from '@open-pencil/core/canvas/coordinate'
 import {
   connectionDistSq,
   getConnectionAnchors,
-  HANDLE_HIT_RADIUS
+  HANDLE_HIT_RADIUS,
+  CURVE_HIT_RADIUS
 } from '@open-pencil/core/canvas/connections'
 import { handleDrawMove, handleDrawUp } from '@open-pencil/vue/shared/input/draw'
 import { hitTestCornerRotationByMatrix } from '@open-pencil/vue/shared/input/geometry'
@@ -492,8 +493,9 @@ export function useCanvasInput(
 
       // Second pass — click the curve body. Shift+click deletes outright;
       // plain click selects (metadata panel shows in the right sidebar).
+      const curveRadiusSq = (CURVE_HIT_RADIUS / editor.state.zoom) ** 2
       for (const conn of editor.graph.connections.values()) {
-        if (connectionDistSq(editor.graph, conn, cx, cy) < hitRadiusSq) {
+        if (connectionDistSq(editor.graph, conn, cx, cy) < curveRadiusSq) {
           if (e.shiftKey) {
             editor.graph.deleteConnection(conn.id)
             if (editor.state.selectedConnectionId === conn.id) {
@@ -772,14 +774,19 @@ export function useCanvasInput(
       if (pending) {
         const target = editor.graph.hitTestDeep(pending.cursorX, pending.cursorY)
         if (target && target.id !== d.sourceNodeId) {
+          const id = `conn_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
           editor.graph.addConnection({
-            id: `conn_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            id,
             sourceNodeId: d.sourceNodeId,
             targetNodeId: target.id,
             kind: 'INTERNAL_NODE',
             interaction: 'ON_CLICK',
             navigation: 'NAVIGATE'
           })
+          // Auto-select the new connection so the metadata panel appears
+          // immediately — avoids the "why is nothing happening" moment.
+          editor.state.selectedConnectionId = id
+          editor.state.selectedIds = new Set()
         }
       }
       editor.state.pendingConnection = null

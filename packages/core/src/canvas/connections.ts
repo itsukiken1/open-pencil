@@ -19,6 +19,8 @@ import type { SkiaRenderer } from './renderer'
 export const HANDLE_RADIUS = 5
 /** Pixel-radius around either endpoint that counts as a hit for delete-on-click. */
 export const HANDLE_HIT_RADIUS = 9
+/** Wider pixel tolerance for clicking anywhere along the bezier body. */
+export const CURVE_HIT_RADIUS = 16
 const ARROW_HEAD_LEN = 12
 const ARROW_HEAD_WIDTH = 9
 const STROKE_WIDTH = 2

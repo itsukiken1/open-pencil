@@ -121,6 +121,13 @@ export async function openFileInNewTab(
   }
 }
 
+// Dev-only: expose the open handler on window so playwright / console can
+// inject a File without going through the user-gesture-gated file dialog.
+// Disabled in production builds (import.meta.env.DEV).
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as { __openPenTestHook?: typeof openFileInNewTab }).__openPenTestHook = openFileInNewTab
+}
+
 /**
  * Kola-style .pen files reference images by relative URL like
  * `images/image-import-12.png`. We serve that directory from the dev server
