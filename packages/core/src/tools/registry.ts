@@ -244,5 +244,13 @@ export const EXTENDED_TOOLS: ToolDef[] = [
   designToComponentMap
 ]
 
+/** Prototyping-graph tools (fork-specific). */
+import { getNavigationGraph } from './navigation'
+const PROTOTYPING_TOOLS: ToolDef[] = [getNavigationGraph]
+
 /** All tools combined — used by MCP server and CLI. */
-export const ALL_TOOLS: ToolDef[] = [...CORE_TOOLS, ...EXTENDED_TOOLS]
+export const ALL_TOOLS: ToolDef[] = [
+  ...CORE_TOOLS,
+  ...EXTENDED_TOOLS,
+  ...PROTOTYPING_TOOLS
+]
