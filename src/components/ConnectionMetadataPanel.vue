@@ -71,7 +71,7 @@ function deselect() {
     <label class="mb-2 block">
       <span class="mb-0.5 block text-muted">Interaction</span>
       <select
-        class="w-full rounded border border-border bg-surface px-1.5 py-1 text-xs"
+        class="w-full rounded border border-border bg-input px-1.5 py-1 text-xs text-surface placeholder:text-muted"
         :value="selectedConn.interaction"
         @change="updateInteraction(($event.target as HTMLSelectElement).value)"
       >
@@ -91,7 +91,7 @@ function deselect() {
       <input
         type="text"
         placeholder="module_x.ControllerY.methodZ"
-        class="w-full rounded border border-border bg-surface px-1.5 py-1 text-xs"
+        class="w-full rounded border border-border bg-input px-1.5 py-1 text-xs text-surface placeholder:text-muted"
         :value="selectedConn.metadata?.rostarRef ?? ''"
         @input="updateMeta('rostarRef', ($event.target as HTMLInputElement).value)"
       />
@@ -102,7 +102,7 @@ function deselect() {
       <input
         type="text"
         placeholder="onTap / onSubmit / onApiSuccess(foo)"
-        class="w-full rounded border border-border bg-surface px-1.5 py-1 text-xs"
+        class="w-full rounded border border-border bg-input px-1.5 py-1 text-xs text-surface placeholder:text-muted"
         :value="selectedConn.metadata?.triggerSemantic ?? ''"
         @input="updateMeta('triggerSemantic', ($event.target as HTMLInputElement).value)"
       />
@@ -113,14 +113,14 @@ function deselect() {
       <input
         type="text"
         placeholder="human description"
-        class="w-full rounded border border-border bg-surface px-1.5 py-1 text-xs"
+        class="w-full rounded border border-border bg-input px-1.5 py-1 text-xs text-surface placeholder:text-muted"
         :value="selectedConn.metadata?.note ?? ''"
         @input="updateMeta('note', ($event.target as HTMLInputElement).value)"
       />
     </label>
 
     <button
-      class="w-full rounded border border-border bg-surface px-2 py-1 text-xs text-destructive hover:bg-destructive hover:text-surface"
+      class="w-full rounded border border-border bg-input px-2 py-1 text-xs text-surface hover:bg-hover"
       @click="deleteConnection"
     >
       Delete connection (or press Backspace)
