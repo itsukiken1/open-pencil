@@ -11,6 +11,7 @@ import {
 import { getAbsolutePositionFull } from '@open-pencil/core/canvas/coordinate'
 import {
   connectionDistSq,
+  getConnectionAnchors,
   HANDLE_HIT_RADIUS
 } from '@open-pencil/core/canvas/connections'
 import { handleDrawMove, handleDrawUp } from '@open-pencil/vue/shared/input/draw'
@@ -449,11 +450,48 @@ export function useCanvasInput(
     }
 
     if (tool === 'PROTOTYPE') {
-      // Delete-on-click: hit-test against the full bezier curve (not just
-      // the endpoint handles). Clicking anywhere along an existing arrow
-      // removes it.
       const hitRadius = HANDLE_HIT_RADIUS / editor.state.zoom
       const hitRadiusSq = hitRadius * hitRadius
+
+      // First pass — endpoint handles. Clicking a target or source handle
+      // lets you redirect: we delete the existing connection and start a
+      // fresh drag from the still-pinned endpoint's node. Dropping on a
+      // new frame creates the updated connection; missing drops just
+      // removes it.
+      for (const conn of editor.graph.connections.values()) {
+        const anchors = getConnectionAnchors(editor.graph, conn)
+        if (!anchors) continue
+        const dxs = cx - anchors.source.x
+        const dys = cy - anchors.source.y
+        const dxt = cx - anchors.target.x
+        const dyt = cy - anchors.target.y
+        const onTarget = dxt * dxt + dyt * dyt < hitRadiusSq
+        const onSource = !onTarget && dxs * dxs + dys * dys < hitRadiusSq
+        if (onTarget || onSource) {
+          // For target-endpoint edit: keep source, redraw from source.
+          // For source-endpoint edit: keep target, redraw from target
+          // (direction reverses, but the drag flow is identical — preview
+          // shows arrow from pinned node to cursor).
+          const pinnedNodeId = onTarget ? conn.sourceNodeId : conn.targetNodeId
+          editor.graph.deleteConnection(conn.id)
+          editor.state.pendingConnection = {
+            sourceNodeId: pinnedNodeId,
+            cursorX: cx,
+            cursorY: cy
+          }
+          drag.value = {
+            type: 'prototype-drag',
+            sourceNodeId: pinnedNodeId,
+            startX: cx,
+            startY: cy
+          } as DragState
+          editor.requestRender()
+          return
+        }
+      }
+
+      // Second pass — click the curve body (anywhere between the handles)
+      // to remove the arrow outright.
       for (const conn of editor.graph.connections.values()) {
         if (connectionDistSq(editor.graph, conn, cx, cy) < hitRadiusSq) {
           editor.graph.deleteConnection(conn.id)
@@ -461,6 +499,7 @@ export function useCanvasInput(
           return
         }
       }
+
       const hit = editor.graph.hitTestDeep(cx, cy)
       if (!hit) return
       editor.state.pendingConnection = {
