@@ -9,6 +9,10 @@ import {
   degToRad
 } from '@open-pencil/core'
 import { getAbsolutePositionFull } from '@open-pencil/core/canvas/coordinate'
+import {
+  getConnectionAnchors,
+  HANDLE_HIT_RADIUS
+} from '@open-pencil/core/canvas/connections'
 import { handleDrawMove, handleDrawUp } from '@open-pencil/vue/shared/input/draw'
 import { hitTestCornerRotationByMatrix } from '@open-pencil/vue/shared/input/geometry'
 import { handleMoveMove, handleMoveUp } from '@open-pencil/vue/shared/input/move'
@@ -445,6 +449,23 @@ export function useCanvasInput(
     }
 
     if (tool === 'PROTOTYPE') {
+      // Delete-on-click: if the pointer is over an existing connection's
+      // source or target handle, remove that connection and stop.
+      const hitRadiusSq = (HANDLE_HIT_RADIUS / editor.state.zoom) ** 2
+      for (const conn of editor.graph.connections.values()) {
+        const anchors = getConnectionAnchors(editor.graph, conn)
+        if (!anchors) continue
+        const dxs = cx - anchors.source.x
+        const dys = cy - anchors.source.y
+        const dxt = cx - anchors.target.x
+        const dyt = cy - anchors.target.y
+        if (dxs * dxs + dys * dys < hitRadiusSq ||
+            dxt * dxt + dyt * dyt < hitRadiusSq) {
+          editor.graph.deleteConnection(conn.id)
+          editor.requestRender()
+          return
+        }
+      }
       const hit = editor.graph.hitTestDeep(cx, cy)
       if (!hit) return
       editor.state.pendingConnection = {

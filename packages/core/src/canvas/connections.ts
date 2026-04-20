@@ -16,7 +16,9 @@ import type { Connection } from '../scene-graph/connection'
 
 import type { SkiaRenderer } from './renderer'
 
-const HANDLE_RADIUS = 5
+export const HANDLE_RADIUS = 5
+/** Pixel-radius around either endpoint that counts as a hit for delete-on-click. */
+export const HANDLE_HIT_RADIUS = 9
 const ARROW_HEAD_LEN = 12
 const ARROW_HEAD_WIDTH = 9
 const STROKE_WIDTH = 2
@@ -26,11 +28,36 @@ const ARROW_R = 0.6
 const ARROW_G = 0.23
 const ARROW_B = 0.94
 
-interface Anchor {
+export interface Anchor {
   x: number
   y: number
   dx: number  // tangent vector, magnitude 1
   dy: number
+}
+
+/**
+ * Compute the source and target anchor points for an existing connection.
+ * Returns null if either node is missing. Used by editor input handlers for
+ * hit-testing handles (e.g. click-to-delete).
+ */
+export function getConnectionAnchors(
+  graph: SceneGraph,
+  conn: Connection
+): { source: Anchor; target: Anchor } | null {
+  const source = rectOf(graph, conn.sourceNodeId)
+  if (!source) return null
+  if (conn.kind !== 'INTERNAL_NODE') {
+    // Stub arrow — target is 40px to the right of source right-edge.
+    const x = source.x + source.w
+    const y = source.y + source.h / 2
+    return {
+      source: { x, y, dx: 1, dy: 0 },
+      target: { x: x + 40, y, dx: 1, dy: 0 }
+    }
+  }
+  const target = rectOf(graph, conn.targetNodeId)
+  if (!target) return null
+  return { source: pickAnchor(source, target), target: pickAnchor(target, source) }
 }
 
 /** Pick the anchor on `bounds` closest to the opposite side of `other`. */
