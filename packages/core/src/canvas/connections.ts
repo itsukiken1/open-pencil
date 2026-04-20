@@ -146,13 +146,19 @@ export function drawConnections(
   r: SkiaRenderer,
   canvas: Canvas,
   graph: SceneGraph,
-  pending: { sourceNodeId: string; cursorX: number; cursorY: number } | null = null
+  pending: { sourceNodeId: string; cursorX: number; cursorY: number } | null = null,
+  selectedConnectionId: string | null = null
 ): void {
   if (graph.connections.size === 0 && !pending) return
 
   const paints = ensurePaints(r)
 
   for (const conn of graph.connections.values()) {
+    const isSelected = conn.id === selectedConnectionId
+    if (isSelected) {
+      // Draw a fatter halo behind the selected arrow so it reads as focused.
+      drawOneConnection(r, canvas, graph, conn, paints.selectionHalo, paints.handle)
+    }
     drawOneConnection(r, canvas, graph, conn, paints.stroke, paints.handle)
   }
 
@@ -299,9 +305,17 @@ function drawStubArrow(
  * Lazily construct the connection paints on first use. Renderer consumers
  * just import drawConnections; they don't need to plumb paint setup.
  */
-function ensurePaints(r: SkiaRenderer): { stroke: Paint; handle: Paint } {
-  if (r.connectionPaint && r.connectionHandlePaint) {
-    return { stroke: r.connectionPaint, handle: r.connectionHandlePaint }
+function ensurePaints(r: SkiaRenderer): {
+  stroke: Paint
+  handle: Paint
+  selectionHalo: Paint
+} {
+  if (r.connectionPaint && r.connectionHandlePaint && r.connectionSelectionPaint) {
+    return {
+      stroke: r.connectionPaint,
+      handle: r.connectionHandlePaint,
+      selectionHalo: r.connectionSelectionPaint
+    }
   }
   const stroke = new r.ck.Paint()
   stroke.setStyle(r.ck.PaintStyle.Stroke)
@@ -314,7 +328,15 @@ function ensurePaints(r: SkiaRenderer): { stroke: Paint; handle: Paint } {
   handle.setColor(r.ck.Color4f(ARROW_R, ARROW_G, ARROW_B, 1))
   handle.setAntiAlias(true)
 
+  // Wider, translucent halo drawn under the selected arrow.
+  const selectionHalo = new r.ck.Paint()
+  selectionHalo.setStyle(r.ck.PaintStyle.Stroke)
+  selectionHalo.setStrokeWidth(STROKE_WIDTH + 6)
+  selectionHalo.setColor(r.ck.Color4f(ARROW_R, ARROW_G, ARROW_B, 0.3))
+  selectionHalo.setAntiAlias(true)
+
   r.connectionPaint = stroke
   r.connectionHandlePaint = handle
-  return { stroke, handle }
+  r.connectionSelectionPaint = selectionHalo
+  return { stroke, handle, selectionHalo }
 }

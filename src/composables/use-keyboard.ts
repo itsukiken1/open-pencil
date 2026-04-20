@@ -48,6 +48,14 @@ export function useKeyboard() {
   }
 
   function smartDelete(altKey: boolean) {
+    // Prototyping connection selection takes priority over regular selection.
+    const sid = store.state.selectedConnectionId
+    if (sid) {
+      store.graph.deleteConnection(sid)
+      store.state.selectedConnectionId = null
+      store.requestRender()
+      return
+    }
     if (hasNodeEditSelection()) {
       if (altKey) store.nodeEditBreakAtVertex()
       else store.nodeEditDeleteSelected()
@@ -76,6 +84,11 @@ export function useKeyboard() {
   }
 
   function escapeOrDeselect() {
+    if (store.state.selectedConnectionId) {
+      store.state.selectedConnectionId = null
+      store.requestRender()
+      return
+    }
     if (store.state.nodeEditState) {
       store.exitNodeEditMode(true)
       return

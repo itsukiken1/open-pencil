@@ -111,6 +111,8 @@ export interface EditorState {
     cursorX: number
     cursorY: number
   } | null
+  /** Id of the currently selected prototyping connection, or null. */
+  selectedConnectionId: string | null
 }
 
 export interface EditorOptions {

@@ -490,14 +490,28 @@ export function useCanvasInput(
         }
       }
 
-      // Second pass — click the curve body (anywhere between the handles)
-      // to remove the arrow outright.
+      // Second pass — click the curve body. Shift+click deletes outright;
+      // plain click selects (metadata panel shows in the right sidebar).
       for (const conn of editor.graph.connections.values()) {
         if (connectionDistSq(editor.graph, conn, cx, cy) < hitRadiusSq) {
-          editor.graph.deleteConnection(conn.id)
+          if (e.shiftKey) {
+            editor.graph.deleteConnection(conn.id)
+            if (editor.state.selectedConnectionId === conn.id) {
+              editor.state.selectedConnectionId = null
+            }
+          } else {
+            editor.state.selectedConnectionId = conn.id
+            editor.state.selectedIds = new Set()
+          }
           editor.requestRender()
           return
         }
+      }
+
+      // Empty click in PROTOTYPE mode deselects any connection.
+      if (editor.state.selectedConnectionId) {
+        editor.state.selectedConnectionId = null
+        editor.requestRender()
       }
 
       const hit = editor.graph.hitTestDeep(cx, cy)

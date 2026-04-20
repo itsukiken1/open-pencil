@@ -200,6 +200,8 @@ export interface RenderOverlays {
     cursorX: number
     cursorY: number
   } | null
+  /** Currently selected prototyping connection id (for highlight). */
+  selectedConnectionId?: string | null
 }
 
 export class SkiaRenderer {
@@ -217,6 +219,7 @@ export class SkiaRenderer {
   // Prototyping-arrow paints; lazily initialised by canvas/connections.ts
   connectionPaint: Paint | null = null
   connectionHandlePaint: Paint | null = null
+  connectionSelectionPaint: Paint | null = null
   imageFilterCache = new Map<string, ImageFilter | null>()
   maskFilterCache = new Map<number, MaskFilter | null>()
   _tmpColor = new Float32Array(4)
@@ -788,7 +791,8 @@ export class SkiaRenderer {
           : null,
         nodeEditState: extendedState.nodeEditState ?? null,
         remoteCursors: state.remoteCursors,
-        pendingConnection: state.pendingConnection ?? null
+        pendingConnection: state.pendingConnection ?? null,
+        selectedConnectionId: state.selectedConnectionId ?? null
       },
       state.sceneVersion
     )
@@ -862,7 +866,13 @@ export class SkiaRenderer {
     // Prototyping connections — drawn in world space over the scene.
     // World transform (dpr+pan+zoom) is still on the stack here.
     p.beginPhase('render:connections')
-    drawConnectionsFn(this, canvas, graph, overlays.pendingConnection ?? null)
+    drawConnectionsFn(
+      this,
+      canvas,
+      graph,
+      overlays.pendingConnection ?? null,
+      overlays.selectedConnectionId ?? null
+    )
     p.endPhase('render:connections')
 
     canvas.restore()

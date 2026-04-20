@@ -6,6 +6,7 @@ import { useAIChat } from '@/composables/use-chat'
 
 import ChatPanel from './ChatPanel.vue'
 import CodePanel from './CodePanel.vue'
+import ConnectionMetadataPanel from './ConnectionMetadataPanel.vue'
 import DesignPanel from './DesignPanel.vue'
 import ZoomDropdown from './ZoomDropdown.vue'
 
@@ -53,6 +54,7 @@ const { panels } = useI18n()
         :force-mount="true"
         :hidden="activeTab !== 'design'"
       >
+        <ConnectionMetadataPanel />
         <DesignPanel />
       </TabsContent>
 
