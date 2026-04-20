@@ -52,10 +52,13 @@ export function useKolaSave(): void {
   function onKey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
       e.preventDefault()
+      e.stopPropagation()
+      console.log('[kola save] Cmd/Ctrl+S intercepted, calling saveKolaConnections')
       void saveKolaConnections()
     }
   }
   onMounted(() => {
+    console.log('[kola save] listener attached')
     window.addEventListener('keydown', onKey, { capture: true })
   })
   onBeforeUnmount(() => {
