@@ -1,5 +1,7 @@
 export { parsePenFile, readPenFile } from './read'
 export { loadPenImages } from './images'
+export { getPenSource, setPenSource, updatePenSourcePath } from './source-map'
+export type { PenSource } from './source-map'
 export {
   writePenConnections,
   writePenConnectionsRaw,

@@ -10,7 +10,7 @@ import {
 } from '@open-pencil/core'
 import { getAbsolutePositionFull } from '@open-pencil/core/canvas/coordinate'
 import {
-  getConnectionAnchors,
+  connectionDistSq,
   HANDLE_HIT_RADIUS
 } from '@open-pencil/core/canvas/connections'
 import { handleDrawMove, handleDrawUp } from '@open-pencil/vue/shared/input/draw'
@@ -449,18 +449,13 @@ export function useCanvasInput(
     }
 
     if (tool === 'PROTOTYPE') {
-      // Delete-on-click: if the pointer is over an existing connection's
-      // source or target handle, remove that connection and stop.
-      const hitRadiusSq = (HANDLE_HIT_RADIUS / editor.state.zoom) ** 2
+      // Delete-on-click: hit-test against the full bezier curve (not just
+      // the endpoint handles). Clicking anywhere along an existing arrow
+      // removes it.
+      const hitRadius = HANDLE_HIT_RADIUS / editor.state.zoom
+      const hitRadiusSq = hitRadius * hitRadius
       for (const conn of editor.graph.connections.values()) {
-        const anchors = getConnectionAnchors(editor.graph, conn)
-        if (!anchors) continue
-        const dxs = cx - anchors.source.x
-        const dys = cy - anchors.source.y
-        const dxt = cx - anchors.target.x
-        const dyt = cy - anchors.target.y
-        if (dxs * dxs + dys * dys < hitRadiusSq ||
-            dxt * dxt + dyt * dyt < hitRadiusSq) {
+        if (connectionDistSq(editor.graph, conn, cx, cy) < hitRadiusSq) {
           editor.graph.deleteConnection(conn.id)
           editor.requestRender()
           return

@@ -60,6 +60,56 @@ export function getConnectionAnchors(
   return { source: pickAnchor(source, target), target: pickAnchor(target, source) }
 }
 
+function cubicAt(
+  a: Anchor,
+  cp1x: number,
+  cp1y: number,
+  cp2x: number,
+  cp2y: number,
+  b: Anchor,
+  t: number
+): { x: number; y: number } {
+  const u = 1 - t
+  const x = u * u * u * a.x + 3 * u * u * t * cp1x + 3 * u * t * t * cp2x + t * t * t * b.x
+  const y = u * u * u * a.y + 3 * u * u * t * cp1y + 3 * u * t * t * cp2y + t * t * t * b.y
+  return { x, y }
+}
+
+/**
+ * Squared distance from (px, py) to the nearest point on the connection's
+ * rendered cubic bezier. Samples 24 points along the curve — good enough
+ * for hit-testing given the curves are reasonably smooth. Returns
+ * Infinity if the connection's source or target can't be resolved.
+ */
+export function connectionDistSq(
+  graph: SceneGraph,
+  conn: Connection,
+  px: number,
+  py: number
+): number {
+  const anchors = getConnectionAnchors(graph, conn)
+  if (!anchors) return Infinity
+  const { source: a, target: b } = anchors
+  const dist = Math.hypot(b.x - a.x, b.y - a.y)
+  const bow = Math.max(40, dist * 0.35)
+  const cp1x = a.x + a.dx * bow
+  const cp1y = a.y + a.dy * bow
+  const cp2x = b.x + b.dx * bow
+  const cp2y = b.y + b.dy * bow
+
+  let min = Infinity
+  const STEPS = 24
+  for (let i = 0; i <= STEPS; i++) {
+    const t = i / STEPS
+    const p = cubicAt(a, cp1x, cp1y, cp2x, cp2y, b, t)
+    const dx = px - p.x
+    const dy = py - p.y
+    const d2 = dx * dx + dy * dy
+    if (d2 < min) min = d2
+  }
+  return min
+}
+
 /** Pick the anchor on `bounds` closest to the opposite side of `other`. */
 function pickAnchor(
   bounds: { x: number; y: number; w: number; h: number },

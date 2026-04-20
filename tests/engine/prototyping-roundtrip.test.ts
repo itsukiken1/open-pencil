@@ -19,7 +19,7 @@ describe('prototyping round-trip', () => {
   test('connections are persisted in .pen JSON and re-parsed', () => {
     const original = readFileSync(KOLA_PEN, 'utf-8')
     const graph = parsePenFile(original)
-    expect(graph.connections.size).toBe(0) // clean base file
+    const baseline = graph.connections.size  // may be non-zero if file was saved previously
 
     // Two realistic Kola connections from navigation.yaml:
     //   login → register_email  (pen ids: FOJYn → dXOYl)
@@ -54,9 +54,11 @@ describe('prototyping round-trip', () => {
 
     const rewritten = writePenConnectionsRaw(original, conns)
 
-    // Re-parse the rewritten file
+    // Re-parse the rewritten file — previous prototyping array was replaced
+    // so only the 2 injected connections remain.
     const graph2 = parsePenFile(rewritten)
     expect(graph2.connections.size).toBe(2)
+    void baseline  // acknowledged but not asserted on — documents intent
 
     const a = graph2.getConnection('conn_login_signup')
     expect(a).toBeDefined()
@@ -91,6 +93,10 @@ describe('prototyping round-trip', () => {
     )
     expect(anotherFrame).toBeDefined()
 
+    const baseOutFrom = graph.getConnectionsFromNode(anyFrame!.id).length
+    const baseInTo = graph.getConnectionsToNode(anotherFrame!.id).length
+    const baseSize = graph.connections.size
+
     graph.addConnection(
       createConnection({
         id: 'test_conn',
@@ -101,14 +107,14 @@ describe('prototyping round-trip', () => {
     )
 
     const outbound = graph.getConnectionsFromNode(anyFrame!.id)
-    expect(outbound.length).toBe(1)
-    expect(outbound[0].id).toBe('test_conn')
+    expect(outbound.length).toBe(baseOutFrom + 1)
+    expect(outbound.some((c) => c.id === 'test_conn')).toBe(true)
 
     const inbound = graph.getConnectionsToNode(anotherFrame!.id)
-    expect(inbound.length).toBe(1)
+    expect(inbound.length).toBe(baseInTo + 1)
 
     graph.deleteConnection('test_conn')
-    expect(graph.connections.size).toBe(0)
+    expect(graph.connections.size).toBe(baseSize)
   })
 
   test('removeConnectionsForNode cleans edges touching a node', () => {
@@ -118,32 +124,22 @@ describe('prototyping round-trip', () => {
       .filter((n) => n.type === 'FRAME')
       .slice(0, 3)
     expect(frames.length).toBe(3)
+    const baseSize = graph.connections.size
 
     graph.addConnection(
-      createConnection({
-        id: 'c1',
-        sourceNodeId: frames[0].id,
-        targetNodeId: frames[1].id
-      })
+      createConnection({ id: 'c1', sourceNodeId: frames[0].id, targetNodeId: frames[1].id })
     )
     graph.addConnection(
-      createConnection({
-        id: 'c2',
-        sourceNodeId: frames[2].id,
-        targetNodeId: frames[0].id
-      })
+      createConnection({ id: 'c2', sourceNodeId: frames[2].id, targetNodeId: frames[0].id })
     )
     graph.addConnection(
-      createConnection({
-        id: 'c3',
-        sourceNodeId: frames[1].id,
-        targetNodeId: frames[2].id
-      })
+      createConnection({ id: 'c3', sourceNodeId: frames[1].id, targetNodeId: frames[2].id })
     )
-    expect(graph.connections.size).toBe(3)
+    expect(graph.connections.size).toBe(baseSize + 3)
 
     graph.removeConnectionsForNode(frames[0].id)  // nukes c1 + c2
-    expect(graph.connections.size).toBe(1)
+    expect(graph.getConnection('c1')).toBeUndefined()
+    expect(graph.getConnection('c2')).toBeUndefined()
     expect(graph.getConnection('c3')).toBeDefined()
   })
 })

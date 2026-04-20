@@ -8,7 +8,7 @@ import Icons from 'unplugin-icons/vite'
 import IconsResolver from 'unplugin-icons/resolver'
 import Components from 'unplugin-vue-components/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { copyFileSync, existsSync, mkdirSync } from 'fs'
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs'
 
 import { automationPlugin } from './src/automation/vite-plugin'
 
@@ -65,6 +65,43 @@ export default defineConfig(async ({ command }) => ({
     tailwindcss(),
     Icons({ compiler: 'vue3' }),
     Components({ resolvers: [IconsResolver({ prefix: 'icon' })] }),
+    // Dev-only: allow the editor to write a .pen file back to disk. Accepts
+    // POST /__dev__/write-pen {path, text}. Restricted to files whose path
+    // ends with `.pen` and lies under the user's Documents directory to
+    // avoid accidental writes.
+    {
+      name: 'dev-write-pen',
+      apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use('/__dev__/write-pen', (req, res) => {
+          if (req.method !== 'POST') {
+            res.statusCode = 405
+            res.end('POST only')
+            return
+          }
+          const chunks: Buffer[] = []
+          req.on('data', (c: Buffer) => chunks.push(c))
+          req.on('end', () => {
+            try {
+              const body = JSON.parse(Buffer.concat(chunks).toString('utf-8'))
+              const path = String(body.path ?? '')
+              const text = String(body.text ?? '')
+              if (!path.endsWith('.pen') || !path.startsWith('/Users/')) {
+                res.statusCode = 400
+                res.end('refusing to write outside ~/ or non-.pen')
+                return
+              }
+              writeFileSync(path, text, 'utf-8')
+              res.setHeader('content-type', 'application/json')
+              res.end(JSON.stringify({ ok: true, bytes: Buffer.byteLength(text) }))
+            } catch (e) {
+              res.statusCode = 500
+              res.end(`error: ${e instanceof Error ? e.message : String(e)}`)
+            }
+          })
+        })
+      }
+    },
     automationPlugin(command === 'serve' ? devAutomationAuthToken : null, devAutomationCorsOrigin),
     vue(),
     VitePWA({

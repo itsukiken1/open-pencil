@@ -2,6 +2,7 @@ import { SceneGraph } from '../../../scene-graph'
 import { copyEffects, copyFills, copyStrokes } from '../../../scene-graph/copy'
 import { populateInstanceChildren } from '../../../scene-graph/instances'
 import { parseSVGPath } from '../svg/parse-path'
+import { setPenSource } from './source-map'
 import {
   applyCornerRadius,
   applyPadding,
@@ -522,6 +523,14 @@ export function parsePenFile(json: string): SceneGraph {
   }
 
   importPrototyping(doc, graph, ctx)
+
+  // Stash source for downstream save-back (see source-map.ts).
+  if (ctx.penToGraphIds) {
+    setPenSource(graph, {
+      text: json,
+      penToGraphId: new Map(ctx.penToGraphIds)
+    })
+  }
 
   return graph
 }
